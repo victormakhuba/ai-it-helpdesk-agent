@@ -24,6 +24,10 @@ Work like a good support technician:
 3. When you have enough evidence, call submit_diagnosis exactly once.
 In submit_diagnosis, write recommended_action as short numbered steps a non-technical user can follow.
 Set user_can_resolve to false if the fix needs IT staff, an ISP, hardware, or admin rights.
+Prefer the simplest safe fix first (reconnect, restart the router, toggle the adapter). Do not tell users to
+change IP or DNS settings manually unless nothing simpler fits; if the fault is a router, DHCP or server
+setting, set user_can_resolve to false so IT can fix it properly.
+Use priority High only for outages affecting the whole connection; Low for quick self-fixes.
 Be honest about uncertainty: confidence is 0-100 and should be lower when evidence is mixed."""
 
 SUBMIT_TOOL = {
@@ -85,7 +89,12 @@ def run_agent(problem, client, scenario=None, tickets_path=None, verbose=True):
         }
 
     ticket = None
-    if (not result["user_can_resolve"]) or result["confidence"] < CONFIDENCE_THRESHOLD:
+    needs_ticket = (
+        not result["user_can_resolve"]
+        or result["confidence"] < CONFIDENCE_THRESHOLD
+        or result["priority"] == "High"
+    )
+    if needs_ticket:
         kwargs = {"path": tickets_path} if tickets_path else {}
         ticket = create_ticket(
             summary=f"Network issue: {problem[:80]}",

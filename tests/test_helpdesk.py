@@ -88,3 +88,11 @@ def test_gateway_parsing_all_platforms():
     assert _parse_gateway("   route to: default\ndestination: default\n    gateway: 10.0.0.1\n  interface: en0") == "10.0.0.1"
     assert _parse_gateway("default via 172.16.0.1 dev eth0") == "172.16.0.1"
     assert _parse_gateway("nothing here") is None
+
+
+def test_high_priority_always_escalates(tmp_path):
+    client = FakeClient([[tool_use("submit_diagnosis", {
+        "diagnosis": "DNS server down", "confidence": 95,
+        "recommended_action": "1. Restart router", "user_can_resolve": True, "priority": "High"})]])
+    out = agent.run_agent("no internet", client, tickets_path=tmp_path / "t.json", verbose=False)
+    assert out["ticket"] is not None
