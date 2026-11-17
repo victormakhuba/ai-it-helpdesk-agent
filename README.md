@@ -21,7 +21,21 @@ A first-line IT support agent built in Python with Claude's tool calling. A user
 
 All tools are **read-only**; the agent never changes a setting. Tool inputs are validated before any command runs, and no shell is used.
 
-## Setup (Windows)
+## Setup
+
+**macOS (Terminal)**
+
+```bash
+git clone <your-repo-url>
+cd ai-it-helpdesk-agent
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+echo 'export ANTHROPIC_API_KEY="your-key-here"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+**Windows (PowerShell)**
 
 ```powershell
 git clone <your-repo-url>
@@ -32,9 +46,11 @@ pip install -r requirements.txt
 setx ANTHROPIC_API_KEY "your-key-here"   # then open a new terminal
 ```
 
+Real-mode diagnostics support Windows, macOS and Linux. On Windows they use `ipconfig`, `ping` and `netsh`; on macOS, `ifconfig`, `scutil`, `route`, `networksetup` and `ping`.
+
 ## Usage
 
-```powershell
+```bash
 # Real diagnostics on your own machine
 python agent.py "My laptop is connected to Wi-Fi but I can't access the internet"
 
@@ -52,7 +68,7 @@ Set `HELPDESK_MODEL` to change the Claude model (default `claude-sonnet-4-6`).
 
 ## Tests
 
-```powershell
+```bash
 python -m pytest
 ```
 
@@ -80,4 +96,3 @@ Confidence:  ...%
 - Send tickets to Jira Service Management via its REST API (replace `create_ticket` in `tickets.py`)
 - Add tools for printer status and Windows Update checks
 - Add a simple web or Teams chat front end
-# ai-it-helpdesk-agent
