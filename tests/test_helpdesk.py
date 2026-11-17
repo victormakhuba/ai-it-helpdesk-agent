@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import agent
 import tickets
 from scenarios import SCENARIOS
-from tools import FUNCTIONS, run_tool
+from tools import FUNCTIONS, run_tool, _parse_gateway
 
 
 def tool_use(name, inp, id_="t1"):
@@ -81,3 +81,10 @@ def test_low_confidence_escalates(tmp_path):
         "recommended_action": "1. Retry", "user_can_resolve": True, "priority": "Medium"})]])
     out = agent.run_agent("weird", client, tickets_path=tmp_path / "t.json", verbose=False)
     assert out["ticket"] is not None
+
+
+def test_gateway_parsing_all_platforms():
+    assert _parse_gateway("   Default Gateway . . . . . . . . . : 192.168.1.1") == "192.168.1.1"
+    assert _parse_gateway("   route to: default\ndestination: default\n    gateway: 10.0.0.1\n  interface: en0") == "10.0.0.1"
+    assert _parse_gateway("default via 172.16.0.1 dev eth0") == "172.16.0.1"
+    assert _parse_gateway("nothing here") is None

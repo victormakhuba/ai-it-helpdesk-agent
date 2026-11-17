@@ -11,6 +11,7 @@ import subprocess
 from scenarios import SCENARIOS
 
 IS_WINDOWS = platform.system() == "Windows"
+IS_MAC = platform.system() == "Darwin"
 HOST_RE = re.compile(r"^[A-Za-z0-9]([A-Za-z0-9.\-]{0,251}[A-Za-z0-9])?$")
 
 TOOL_SCHEMAS = [
@@ -66,16 +67,36 @@ def _ping(host):
 
 
 def get_ipconfig():
-    return _run(["ipconfig", "/all"]) if IS_WINDOWS else _run(["ip", "addr"]) 
+    if IS_WINDOWS:
+        return _run(["ipconfig", "/all"])
+    if IS_MAC:
+        # ifconfig shows addresses; scutil shows the DNS servers in use
+        dns = [l.strip() for l in _run(["scutil", "--dns"]).splitlines() if "nameserver[" in l]
+        return _run(["ifconfig"]) + "\nDNS servers:\n" + "\n".join(dict.fromkeys(dns))
+    return _run(["ip", "addr"])
+
+
+def _parse_gateway(text):
+    """Pull the default gateway IP out of ipconfig / route / ip route output."""
+    for pattern in (
+        r"Default Gateway[ .]*:\s*(\d+\.\d+\.\d+\.\d+)",   # Windows
+        r"^\s*gateway:\s*(\d+\.\d+\.\d+\.\d+)",           # macOS: route -n get default
+        r"default via (\d+\.\d+\.\d+\.\d+)",               # Linux
+    ):
+        m = re.search(pattern, text, re.MULTILINE)
+        if m:
+            return m.group(1)
+    return None
 
 
 def _default_gateway():
-    text = _run(["ipconfig"]) if IS_WINDOWS else _run(["ip", "route"])
     if IS_WINDOWS:
-        m = re.search(r"Default Gateway[ .]*:\s*(\d+\.\d+\.\d+\.\d+)", text)
+        text = _run(["ipconfig"])
+    elif IS_MAC:
+        text = _run(["route", "-n", "get", "default"])
     else:
-        m = re.search(r"default via (\d+\.\d+\.\d+\.\d+)", text)
-    return m.group(1) if m else None
+        text = _run(["ip", "route"])
+    return _parse_gateway(text)
 
 
 def ping_gateway():
@@ -102,6 +123,16 @@ def dns_lookup(hostname="www.microsoft.com"):
 def check_network_adapter():
     if IS_WINDOWS:
         return _run(["netsh", "interface", "show", "interface"]) + "\n" + _run(["netsh", "wlan", "show", "interfaces"])
+    if IS_MAC:
+        ports = _run(["networksetup", "-listallhardwareports"])
+        # keep only each interface's name and its up/down status
+        status, current = [], None
+        for line in _run(["ifconfig"]).splitlines():
+            if line and not line[0].isspace():
+                current = line.split(":")[0]
+            elif "status:" in line and current:
+                status.append(f"{current}: {line.strip()}")
+        return ports + "\nInterface status:\n" + "\n".join(status)
     return _run(["ip", "-brief", "link"])
 
 
