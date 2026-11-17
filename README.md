@@ -76,7 +76,7 @@ Tests run offline with a scripted fake model: tool validation, scenario coverage
 
 ## Example output
 
-*(Replace this with a screenshot or paste from your own first run.)*
+*Screenshot*
 
 ```
 User report: Wi-Fi connected but no internet
